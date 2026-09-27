@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#07060a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="薪资实时器">
+<meta name="mobile-web-app-capable" content="yes">
+<title>薪资实时器</title>
+
+<style>
+  :root{ --gold-1:#fffbe6; --gold-2:#ffe89a; --gold-3:#f7d774; --gold-4:#d4af37; --gold-5:#a67c00; }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    background:#07060a; color:#f0e2c0;
+    font-family:"SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+    overflow:hidden; -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent;
+    padding-top:env(safe-area-inset-top);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .bg-glow{position:fixed;inset:-25%;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(circle at 50% 45%, rgba(212,175,55,.20), transparent 42%),
+      radial-gradient(circle at 12% 88%, rgba(255,180,50,.10), transparent 42%),
+      radial-gradient(circle at 88% 12%, rgba(255,215,120,.09), transparent 42%);
+    animation:breathe 9s ease-in-out infinite;}
+  @keyframes breathe{0%,100%{opacity:.65;transform:scale(1);}50%{opacity:1;transform:scale(1.07);}}
+  .bg-grid{position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(rgba(212,175,55,.055) 1px, transparent 1px),linear-gradient(90deg, rgba(212,175,55,.055) 1px, transparent 1px);
+    background-size:64px 64px;
+    -webkit-mask-image:radial-gradient(circle at 50% 50%, #000 8%, transparent 68%);
+    mask-image:radial-gradient(circle at 50% 50%, #000 8%, transparent 68%);
+    animation:gridMove 24s linear infinite;}
+  @keyframes gridMove{to{background-position:64px 64px;}}
+  .vignette{position:fixed;inset:0;pointer-events:none;z-index:1;
+    background:radial-gradient(circle at 50% 50%, transparent 38%, rgba(0,0,0,.78) 100%);}
+
+  .stage{position:relative;z-index:2;height:100%;display:grid;place-items:center;padding:20px;}
+  .panel{grid-area:1/1;width:min(94vw,560px);
+    transition:opacity .5s cubic-bezier(.22,1,.36,1),transform .5s cubic-bezier(.22,1,.36,1),filter .5s ease;}
+  .panel.hidden{opacity:0;transform:scale(.93) translateY(14px);filter:blur(8px);pointer-events:none;}
+
+  #setupPanel{position:relative;padding:38px 32px 32px;border-radius:26px;
+    background:linear-gradient(160deg, rgba(32,26,15,.94), rgba(11,9,7,.97));
+    border:1px solid rgba(212,175,55,.26);
+    box-shadow:0 40px 90px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,220,130,.13),inset 0 0 60px rgba(212,175,55,.05);}
+  #setupPanel::before{content:'';position:absolute;top:-1px;left:14%;right:14%;height:1px;
+    background:linear-gradient(90deg,transparent,#f7d774,transparent);}
+
+  .brand{text-align:center;margin-bottom:30px;}
+  .brand-mark{width:58px;height:58px;margin:0 auto 16px;border-radius:50%;display:grid;place-items:center;
+    font-size:26px;font-weight:900;color:#2a1f05;
+    background:linear-gradient(145deg,#fff3c4,#f7d774 30%,#c9a227 62%,#8b6914);
+    box-shadow:0 0 26px rgba(247,215,116,.5), inset 0 -3px 8px rgba(0,0,0,.35), inset 0 2px 4px rgba(255,255,255,.6);
+    animation:markPulse 4s ease-in-out infinite;}
+  @keyframes markPulse{0%,100%{box-shadow:0 0 22px rgba(247,215,116,.42),inset 0 -3px 8px rgba(0,0,0,.35),inset 0 2px 4px rgba(255,255,255,.6);}50%{box-shadow:0 0 42px rgba(247,215,116,.8),inset 0 -3px 8px rgba(0,0,0,.35),inset 0 2px 4px rgba(255,255,255,.6);}}
+  .brand h1{font-size:21px;font-weight:700;letter-spacing:.3em;text-indent:.3em;
+    background:linear-gradient(180deg,#fffbe6,#f7d774 40%,#d4af37 70%,#a67c00);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;}
+  .brand .sub{margin-top:8px;font-size:9.5px;letter-spacing:.42em;text-indent:.42em;color:rgba(212,175,55,.5);}
+
+  .field{display:block;margin-bottom:16px;}
+  .field > span{display:block;font-size:10.5px;letter-spacing:.2em;color:rgba(212,175,55,.72);margin-bottom:9px;}
+  .field input{width:100%;padding:15px 17px;background:rgba(255,215,120,.045);
+    border:1px solid rgba(212,175,55,.2);border-radius:13px;color:#ffeec2;
+    font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;outline:none;color-scheme:dark;
+    transition:border-color .25s, background .25s, box-shadow .25s;font-family:inherit;}
+  .field input:focus{border-color:rgba(247,215,116,.75);background:rgba(255,215,120,.09);box-shadow:0 0 0 4px rgba(247,215,116,.08);}
+  .row{display:flex;gap:14px;}
+  .row .field{flex:1;}
+
+  .switch{display:flex;align-items:center;gap:11px;cursor:pointer;margin:4px 0 22px;user-select:none;}
+  .switch input{display:none;}
+  .switch .track{width:44px;height:25px;border-radius:99px;flex:none;position:relative;
+    background:rgba(212,175,55,.14);border:1px solid rgba(212,175,55,.3);transition:.3s;}
+  .switch .thumb{position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:#6b5a2a;transition:.3s cubic-bezier(.34,1.56,.64,1);}
+  .switch input:checked + .track{background:rgba(247,215,116,.3);border-color:#f7d774;}
+  .switch input:checked + .track .thumb{left:21px;background:linear-gradient(145deg,#fff3c4,#d4af37);box-shadow:0 0 14px rgba(247,215,116,.9);}
+  .switch .switch-label{font-size:12.5px;color:rgba(212,175,55,.8);letter-spacing:.05em;}
+
+  .btn-gold{width:100%;padding:18px;border:none;border-radius:15px;cursor:pointer;
+    font-family:inherit;font-size:15px;font-weight:900;letter-spacing:.34em;text-indent:.34em;color:#2a1f05;
+    background:linear-gradient(135deg,#fff3c4,#f7d774 22%,#d4af37 50%,#f7d774 78%,#b8860b);
+    background-size:220% 100%;
+    box-shadow:0 10px 34px rgba(212,175,55,.42),inset 0 1px 0 rgba(255,255,255,.7),inset 0 -2px 6px rgba(120,80,0,.4);
+    transition:transform .25s, box-shadow .25s;animation:shine 4.5s linear infinite;}
+  @keyframes shine{to{background-position:220% 0;}}
+  .btn-gold:hover{transform:translateY(-2px);box-shadow:0 16px 46px rgba(212,175,55,.62),inset 0 1px 0 rgba(255,255,255,.7);}
+  .btn-gold:active{transform:translateY(0) scale(.985);}
+
+  #livePanel{text-align:center;}
+  .live-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;}
+  .live-label{font-size:11px;letter-spacing:.5em;text-indent:.5em;color:rgba(212,175,55,.8);}
+  .btn-ghost{background:rgba(212,175,55,.07);border:1px solid rgba(212,175,55,.25);color:rgba(247,215,116,.85);
+    font-family:inherit;font-size:11px;letter-spacing:.18em;padding:8px 15px;border-radius:99px;cursor:pointer;transition:.25s;}
+  .btn-ghost:hover{background:rgba(212,175,55,.16);border-color:rgba(247,215,116,.6);}
+
+  .amount{display:flex;align-items:baseline;justify-content:center;gap:1px;
+    font-variant-numeric:tabular-nums;font-feature-settings:"tnum";font-weight:800;letter-spacing:-.03em;line-height:1;margin-bottom:6px;}
+  .amount .cur{font-size:clamp(26px,6vw,44px);font-weight:700;
+    background:linear-gradient(180deg,#fffbe6,#f7d774 45%,#c9a227);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;transform:translateY(-.08em);}
+  .amount .int{font-size:clamp(62px,16vw,124px);
+    background:linear-gradient(180deg,#fffbe6 0%,#ffe89a 16%,#f7d774 36%,#d4af37 58%,#a67c00 76%,#f7d774 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
+    filter:drop-shadow(0 0 30px rgba(247,215,116,.4));}
+  .amount .dec{font-size:clamp(22px,5.4vw,40px);color:rgba(212,175,55,.68);font-weight:700;filter:drop-shadow(0 0 14px rgba(247,215,116,.25));}
+  .amount.pop{animation:pop .3s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes pop{0%{transform:scale(1);}35%{transform:scale(1.028);}100%{transform:scale(1);}}
+
+  .rate-row{display:flex;align-items:stretch;justify-content:center;margin-top:36px;margin-bottom:30px;padding:18px 0;
+    border-top:1px solid rgba(212,175,55,.12);border-bottom:1px solid rgba(212,175,55,.12);}
+  .rate{flex:1;min-width:0;}
+  .rate b{display:block;font-size:clamp(13px,3.4vw,17px);font-weight:700;color:#f7d774;
+    font-variant-numeric:tabular-nums;text-shadow:0 0 18px rgba(247,215,116,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rate span{display:block;margin-top:6px;font-size:9.5px;letter-spacing:.22em;text-indent:.22em;color:rgba(212,175,55,.5);}
+  .rate-sep{width:1px;flex:none;background:linear-gradient(transparent,rgba(212,175,55,.3),transparent);}
+
+  .progress-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:10.5px;letter-spacing:.2em;color:rgba(212,175,55,.65);}
+  .progress-head #progPct{font-variant-numeric:tabular-nums;color:rgba(247,215,116,.9);letter-spacing:.05em;}
+  .progress{height:7px;border-radius:99px;overflow:hidden;background:rgba(212,175,55,.1);box-shadow:inset 0 1px 3px rgba(0,0,0,.6);}
+  .progress-fill{height:100%;width:0%;border-radius:99px;
+    background:linear-gradient(90deg,#8b6914,#d4af37 45%,#f7d774 75%,#fffbe6);
+    box-shadow:0 0 18px rgba(247,215,116,.8);transition:width .35s linear;}
+
+  .status-line{margin-top:20px;font-size:12px;letter-spacing:.14em;color:rgba(212,175,55,.62);
+    font-variant-numeric:tabular-nums;min-height:18px;}
+  .coin-hint{margin-top:9px;font-size:10px;letter-spacing:.16em;color:rgba(212,175,55,.34);}
+
+  .coin-layer{position:fixed;inset:0;z-index:60;pointer-events:none;overflow:hidden;}
+  .coin{position:absolute;top:0;border-radius:50%;
+    background:radial-gradient(circle at 34% 28%, #fffde8 0%, #ffe89a 22%, #f7d774 42%, #d4af37 66%, #8b6914 100%);
+    box-shadow:0 0 14px rgba(255,215,90,.85),0 0 34px rgba(212,175,55,.35),inset 0 0 6px rgba(255,255,255,.75),inset 0 -3px 6px rgba(120,80,0,.55);
+    display:grid;place-items:center;font-weight:900;color:#7a5c0d;text-shadow:0 1px 0 rgba(255,255,255,.65);
+    will-change:transform,opacity;animation:coinFall linear forwards;}
+  .coin::after{content:'¥';line-height:1;transform:translateY(1px);}
+  @keyframes coinFall{
+    0%{transform:translate3d(0,-9vh,0) rotateY(0deg) rotateZ(0deg) scale(.45);opacity:0;}
+    10%{opacity:1;}80%{opacity:1;}
+    100%{transform:translate3d(var(--drift),110vh,0) rotateY(760deg) rotateZ(var(--rot)) scale(1);opacity:0;}
+  }
+
+  @media (max-width:420px){
+    #setupPanel{padding:30px 22px 26px;border-radius:22px;}
+    .rate-row{margin-top:28px;margin-bottom:24px;padding:15px 0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="bg-grid"></div>
+<div class="vignette"></div>
+<div class="coin-layer" id="coinLayer"></div>
+
+<div class="stage">
+  <section class="panel" id="setupPanel">
+    <div class="brand">
+      <div class="brand-mark">¥</div>
+      <h1>薪资实时器</h1>
+      <p class="sub">SALARY · LIVE TICKER</p>
+    </div>
+
+    <label class="field">
+      <span>月薪（元）</span>
+      <input type="number" id="inMonthly" value="20000" min="1" step="100" inputmode="decimal">
+    </label>
+
+    <div class="row">
+      <label class="field">
+        <span>上班时间</span>
+        <input type="time" id="inStart" value="09:00">
+      </label>
+      <label class="field">
+        <span>下班时间</span>
+        <input type="time" id="inEnd" value="18:00">
+      </label>
+    </div>
+
+    <label class="field">
+      <span>每月工作天数</span>
+      <input type="number" id="inDays" value="21.75" min="1" max="31" step="0.25" inputmode="decimal">
+    </label>
+
+    <label class="switch">
+      <input type="checkbox" id="inDemo">
+      <span class="track"><span class="thumb"></span></span>
+      <span class="switch-label">演示加速 ×120（非工作时间也能看）</span>
+    </label>
+
+    <button class="btn-gold" id="btnStart">开 始 赚 钱</button>
+  </section>
+
+  <section class="panel hidden" id="livePanel">
+    <div class="live-top">
+      <div class="live-label">今日已赚</div>
+      <button class="btn-ghost" id="btnBack">设置</button>
+    </div>
+
+    <div class="amount" id="amount">
+      <span class="cur">¥</span><span class="int" id="amtInt">0</span><span class="dec" id="amtDec">.000</span>
+    </div>
+
+    <div class="rate-row">
+      <div class="rate"><b id="rateSec">¥0.0000</b><span>每 秒</span></div>
+      <div class="rate-sep"></div>
+      <div class="rate"><b id="rateHour">¥0</b><span>时 薪</span></div>
+      <div class="rate-sep"></div>
+      <div class="rate"><b id="rateDay">¥0</b><span>日 薪</span></div>
+    </div>
+
+    <div class="progress-head">
+      <span id="progStatus">工作中</span>
+      <span id="progPct">0%</span>
+    </div>
+    <div class="progress"><div class="progress-fill" id="progFill"></div></div>
+
+    <div class="status-line" id="statusLine">—</div>
+    <div class="coin-hint" id="coinHint">每 ¥0.1 掉落金币</div>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- 动态生成 App 图标（iOS 主屏幕用） ---------- */
+  (function setIcon(){
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">' +
+      '<defs><radialGradient id="g" cx="35%" cy="30%" r="75%">' +
+      '<stop offset="0" stop-color="#fffde8"/><stop offset=".55" stop-color="#f7d774"/>' +
+      '<stop offset="1" stop-color="#8b6914"/></radialGradient></defs>' +
+      '<rect width="180" height="180" rx="40" fill="#07060a"/>' +
+      '<circle cx="90" cy="90" r="62" fill="url(#g)"/>' +
+      '<text x="90" y="120" font-size="88" font-weight="900" text-anchor="middle" ' +
+      'fill="#7a5c0d" font-family="-apple-system,sans-serif">\u00A5</text></svg>';
+    const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+    const link = document.createElement('link');
+    link.rel = 'apple-touch-icon';
+    link.href = url;
+    document.head.appendChild(link);
+    const fav = document.createElement('link');
+    fav.rel = 'icon';
+    fav.href = url;
+    document.head.appendChild(fav);
+  })();
+
+  const $ = (id) => document.getElementById(id);
+  const dom = {
+    setupPanel: $('setupPanel'), livePanel: $('livePanel'),
+    inMonthly: $('inMonthly'), inStart: $('inStart'), inEnd: $('inEnd'), inDays: $('inDays'),
+    inDemo: $('inDemo'), btnStart: $('btnStart'), btnBack: $('btnBack'),
+    amount: $('amount'), amtInt: $('amtInt'), amtDec: $('amtDec'),
+    rateSec: $('rateSec'), rateHour: $('rateHour'), rateDay: $('rateDay'),
+    progFill: $('progFill'), progPct: $('progPct'), progStatus: $('progStatus'),
+    statusLine: $('statusLine'), coinHint: $('coinHint'), coinLayer: $('coinLayer'),
+  };
+
+  const state = {
+    monthly: 20000, days: 21.75, startMin: 9*60, endMin: 18*60,
+    workSecs: 9*3600, perSec: 0, decimals: 3, coinStep: 0.1,
+    lastCoinIdx: 0, lastCoinAt: 0, running: false, demo: false,
+    demoAnchor: null, lastIntText: '', lastPopAt: 0, coinCount: 0,
+  };
+
+  const STORAGE_KEY = 'salary-ticker-v1';
+  const DEMO_SPEED = 120;
+  const MAX_COINS = 80;
+
+  function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+  function hms(sec){
+    sec = Math.max(0, Math.floor(sec));
+    const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+    const p = n => String(n).padStart(2,'0');
+    return p(h)+':'+p(m)+':'+p(s);
+  }
+  function parseTime(str, fb){
+    if (typeof str !== 'string') return fb;
+    const m = str.match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return fb;
+    return clamp(parseInt(m[1],10),0,23)*60 + clamp(parseInt(m[2],10),0,59);
+  }
+  function toTimeString(min){
+    return String(Math.floor(min/60)%24).padStart(2,'0') + ':' + String(min%60).padStart(2,'0');
+  }
+
+  function computeDerived(){
+    state.workSecs = Math.max(60, (state.endMin - state.startMin) * 60);
+    state.perSec   = state.monthly / (state.days * state.workSecs);
+    const ps = state.perSec;
+    state.decimals = ps>=0.05?2 : ps>=0.005?3 : ps>=0.0005?4 : 5;
+
+    let bestP = 1, bestErr = Infinity;
+    for (let e=-10; e<=6; e++){
+      const p = Math.pow(10,e);
+      const itv = p/state.perSec;
+      if (itv < 0.7) continue;
+      const err = Math.abs(itv-1.5);
+      if (err < bestErr){ bestErr = err; bestP = p; }
+    }
+    state.coinStep = bestP;
+    const stepStr = bestP >= 1 ? String(bestP)
+                  : bestP.toFixed(String(bestP).split('.')[1].length);
+    dom.coinHint.textContent = '每 ¥' + stepStr + ' 掉落金币';
+  }
+
+  function renderAmount(earned){
+    const d = state.decimals;
+    const s = earned.toFixed(d);
+    const dot = s.indexOf('.');
+    const ip = s.slice(0,dot), dp = s.slice(dot);
+    const intText = Number(ip).toLocaleString('en-US');
+    if (intText !== state.lastIntText){
+      dom.amtInt.textContent = intText;
+      state.lastIntText = intText;
+      const t = performance.now();
+      if (t - state.lastPopAt > 420){
+        state.lastPopAt = t;
+        dom.amount.classList.remove('pop');
+        void dom.amount.offsetWidth;
+        dom.amount.classList.add('pop');
+      }
+    }
+    if (dom.amtDec.textContent !== dp) dom.amtDec.textContent = dp;
+  }
+
+  function renderStats(elapsed, nowSec){
+    const prog = state.workSecs > 0 ? clamp(elapsed/state.workSecs, 0, 1) : 0;
+    dom.progFill.style.width = (prog*100).toFixed(2) + '%';
+    dom.progPct.textContent  = (prog*100).toFixed(1) + '%';
+    if (state.demo){
+      dom.progStatus.textContent = '演示模式';
+      dom.statusLine.textContent = '加速 ×' + DEMO_SPEED + ' · 虚拟时钟推进中';
+      return;
+    }
+    const startSec = state.startMin*60, endSec = state.endMin*60;
+    if (nowSec < startSec){
+      dom.progStatus.textContent = '未开工';
+      dom.statusLine.textContent = '距离上班还有 ' + hms(startSec - nowSec);
+    } else if (nowSec >= endSec){
+      dom.progStatus.textContent = '已下班';
+      dom.statusLine.textContent = '今日收入已结算 · 明天继续';
+    } else {
+      dom.progStatus.textContent = '工作中';
+      dom.statusLine.textContent = '距离下班还有 ' + hms(endSec - nowSec);
+    }
+  }
+
+  function spawnCoin(){
+    if (state.coinCount >= MAX_COINS) return;
+    const size = 16 + Math.random()*22;
+    const coin = document.createElement('div');
+    coin.className = 'coin';
+    coin.style.width = size+'px';
+    coin.style.height = size+'px';
+    coin.style.fontSize = Math.max(9, size*0.52)+'px';
+    coin.style.left = (2 + Math.random()*94)+'vw';
+    coin.style.setProperty('--drift', (Math.random()*170-85)+'px');
+    coin.style.setProperty('--rot', (Math.random()*620-310)+'deg');
+    coin.style.animationDuration = (1.35 + Math.random()*1.05)+'s';
+    dom.coinLayer.appendChild(coin);
+    state.coinCount++;
+    coin.addEventListener('animationend', () => {
+      if (coin.parentNode) coin.parentNode.removeChild(coin);
+      state.coinCount--;
+    });
+  }
+
+  function handleCoins(earned){
+    const idx = Math.floor(earned / state.coinStep);
+    if (idx > state.lastCoinIdx){
+      const t = performance.now();
+      if (t - state.lastCoinAt > 90){ spawnCoin(); state.lastCoinAt = t; }
+      state.lastCoinIdx = idx;
+    }
+  }
+
+  function loop(){
+    if (!state.running) return;
+    const now = new Date();
+    const nowSec = now.getHours()*3600 + now.getMinutes()*60 + now.getSeconds() + now.getMilliseconds()/1000;
+    let elapsed;
+    if (state.demo){
+      if (state.demoAnchor === null) state.demoAnchor = performance.now();
+      elapsed = ((performance.now() - state.demoAnchor)/1000) * DEMO_SPEED;
+      elapsed = Math.min(elapsed, state.workSecs);
+    } else {
+      elapsed = clamp(nowSec - state.startMin*60, 0, state.workSecs);
+    }
+    const earned = elapsed * state.perSec;
+    renderAmount(earned);
+    renderStats(elapsed, nowSec);
+    handleCoins(earned);
+    requestAnimationFrame(loop);
+  }
+
+  function readInputs(){
+    const monthly = parseFloat(dom.inMonthly.value);
+    const days = parseFloat(dom.inDays.value);
+    state.monthly = (isFinite(monthly) && monthly > 0) ? monthly : 20000;
+    state.days    = (isFinite(days) && days > 0) ? Math.min(days,31) : 21.75;
+    const s = parseTime(dom.inStart.value, 9*60);
+    let e = parseTime(dom.inEnd.value, 18*60);
+    if (e <= s) e = s + 60;
+    state.startMin = s; state.endMin = e;
+    state.demo = dom.inDemo.checked;
+    dom.inMonthly.value = state.monthly;
+    dom.inDays.value    = state.days;
+    dom.inStart.value   = toTimeString(s);
+    dom.inEnd.value     = toTimeString(e);
+  }
+
+  function saveSettings(){
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        monthly: state.monthly, days: state.days,
+        start: dom.inStart.value, end: dom.inEnd.value, demo: state.demo,
+      }));
+    } catch(e){}
+  }
+  function loadSettings(){
+    let cfg = null;
+    try { cfg = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch(e){}
+    if (!cfg) return;
+    if (cfg.monthly > 0) dom.inMonthly.value = cfg.monthly;
+    if (cfg.days > 0)    dom.inDays.value    = cfg.days;
+    if (cfg.start)       dom.inStart.value   = cfg.start;
+    if (cfg.end)         dom.inEnd.value     = cfg.end;
+    dom.inDemo.checked = !!cfg.demo;
+  }
+
+  function start(){
+    readInputs();
+    computeDerived();
+    saveSettings();
+    dom.setupPanel.classList.add('hidden');
+    dom.livePanel.classList.remove('hidden');
+
+    dom.rateSec.textContent  = '¥' + state.perSec.toFixed(4);
+    dom.rateHour.textContent = '¥' + (state.perSec*3600).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});
+    dom.rateDay.textContent  = '¥' + (state.perSec*state.workSecs).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+    const n = new Date();
+    const nowSec = n.getHours()*3600 + n.getMinutes()*60 + n.getSeconds() + n.getMilliseconds()/1000;
+    const initElapsed = state.demo ? 0 : clamp(nowSec - state.startMin*60, 0, state.workSecs);
+    state.lastCoinIdx = Math.floor((initElapsed * state.perSec) / state.coinStep);
+
+    state.lastIntText = '';
+    state.lastCoinAt = 0;
+    state.demoAnchor = null;
+    state.running = true;
+    requestAnimationFrame(loop);
+  }
+
+  function back(){
+    state.running = false;
+    state.demoAnchor = null;
+    dom.livePanel.classList.add('hidden');
+    dom.setupPanel.classList.remove('hidden');
+    dom.coinLayer.innerHTML = '';
+    state.coinCount = 0;
+  }
+
+  dom.btnStart.addEventListener('click', start);
+  dom.btnBack.addEventListener('click', back);
+  [dom.inMonthly, dom.inStart, dom.inEnd, dom.inDays].forEach(el => {
+    el.addEventListener('keydown', ev => { if (ev.key === 'Enter') start(); });
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) state.running = false;
+    else if (!dom.livePanel.classList.contains('hidden')){
+      state.demoAnchor = null;
+      state.running = true;
+      requestAnimationFrame(loop);
+    }
+  });
+
+  loadSettings();
+  computeDerived();
+})();
+</script>
+</body>
+</html>
